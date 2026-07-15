@@ -107,12 +107,13 @@ def respond(
         accumulated = ""
         final_response = None
 
-        with client.responses.stream(**kwargs) as stream:
-            for delta in stream.text_deltas:
-                accumulated += delta
+        stream = client.responses.create(**kwargs)
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                accumulated += event.delta
                 yield accumulated, prev_response_id, reading_list
-
-            final_response = stream.get_final_response()
+            if event.type == "response.completed":
+                final_response = event.response
 
         new_prev_id = final_response.id if final_response else prev_response_id
 
