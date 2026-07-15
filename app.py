@@ -300,14 +300,15 @@ def build_ui():
 
         def user_submit(message, history):
             """Append user turn immediately."""
-            return "", history + [[message, None]]
+            return "", history + [{"role": "user", "content": message}]
 
         def bot_stream(history, pid, rl, fmt, genre, age):
-            message = history[-1][0]
-            history[-1][1] = ""
+            message = history[-1]["content"]
+            history[-1] = {"role": "user", "content": message}
             for text, new_pid, new_rl in respond(message, history[:-1], pid, rl, fmt, genre, age):
-                history[-1][1] = text
+                history.append({"role": "assistant", "content": text})
                 yield history, new_pid, new_rl
+                history.pop()
 
         # Send on button click
         (
