@@ -1,6 +1,0 @@
-{
-  "assistant_name": "(Nick) Read a tron",
-  "assistant_instructions": "You are a helpful assistant. Use your vector-store files to answer questions. Provide clear, accurate, and well-supported responses and citations",
-  "model": "gpt-4o-mini",
-  "vector_store_id": "vs_6a567d1cb1a0819181275fbc573bc2c2"
-}
