@@ -301,15 +301,26 @@ def build_ui():
 
         def user_submit(message, history):
             """Append user turn immediately."""
-            return "", history + [{"role": "user", "content": message}]
+            return "", history + [{"role": "user", "content": [{"type": "text", "text": message}]}]
 
         def bot_stream(history, pid, rl, fmt, genre, age):
-            message = history[-1]["content"]
-            history[-1] = {"role": "user", "content": message}
-            for text, new_pid, new_rl in respond(message, history[:-1], pid, rl, fmt, genre, age):
-                history.append({"role": "assistant", "content": text})
-                yield history, new_pid, new_rl
-                history.pop()
+            message = history[-1]["content"][0]["text"]
+            base_history = history[:-1]
+            try:
+                for text, new_pid, new_rl in respond(message, base_history, pid, rl, fmt, genre, age):
+                    yield base_history + [
+                        {"role": "user", "content": [{"type": "text", "text": message}]},
+                        {"role": "assistant", "content": [{"type": "text", "text": text}]},
+                    ], new_pid, new_rl
+            except Exception as exc:
+                import traceback
+                print("BOT_STREAM ERROR:", exc, flush=True)
+                traceback.print_exc()
+                err_text = f"⚠️  {type(exc).__name__}: {exc}"
+                yield base_history + [
+                    {"role": "user", "content": [{"type": "text", "text": message}]},
+                    {"role": "assistant", "content": [{"type": "text", "text": err_text}]},
+                ], pid, rl
 
         # Send on button click
         (
