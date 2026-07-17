@@ -1,0 +1,39 @@
+Build a chat app called "Book suggester". It is an OpenAI assistant named "BookBot". Unzip `replit_project.zip` first. Pick whichever stack you think will produce the nicest-looking app. Python or TypeScript/React are both fine.
+
+ABOUT THE CORPUS: Books (already lives in an OpenAI vector store; load it and keep it as-is, do not rebuild the corpus.)
+WELCOME MESSAGE: Ask me about the type of book you want to read.
+HOW IT SHOULD WORK: Detailed book search, Private List you can put books you read on, Book format filters (eg. Graphic Novel, Comic book, Novel), other filters (eg. genre, age guidelines, ect.)
+VISUAL STYLE: Cozy, Minimal, Friendly
+
+ASSISTANT SYSTEM PROMPT (use verbatim):
+You will help people find new books to read.
+
+VISUAL POLISH. Aim for a polished, product-quality UI:
+- Follow the app's visual style.
+- Display the assistant's name and welcome message.
+- 3 to 4 suggested starter questions the user can click if relevant.
+- Style citations as expandable references, not raw text.
+- Make it feel like a real product, not a default chat demo.
+
+IMPLEMENTATION. Must do:
+- Read the OpenAI API key from environment variables. NEVER hardcode it.
+  Python: `os.environ["OPENAI_API_KEY"]`
+  Node/TypeScript: `process.env.OPENAI_API_KEY`
+  Replit's Secrets are exposed as env vars, so this is how the app reads the key.
+- Use the OpenAI **Responses API** (`client.responses.create()`), NOT the deprecated Assistants API.
+- OpenAI SDK v2 API paths: `client.vector_stores` is TOP-LEVEL. `client.responses` is also TOP-LEVEL.
+- Do NOT use `client.beta.assistants`, `client.beta.threads`, or `client.beta.runs` — those are deprecated.
+- Load `vector_store_id` from `config.json` and keep this vector store attached and unchanged — it already holds the full corpus, so do not rebuild or re-upload the corpus.
+- Let users upload their own documents in the chat. Upload each file to OpenAI with `purpose="assistants"`, then attach it to that user's message using `attachments=[{"file_id": file_id, "tools": [{"type": "file_search"}]}]`. The Assistants API then searches BOTH the existing corpus vector store and the uploaded file, so the original corpus is always used and uploads stay scoped to that conversation. `file_search` reads text documents (PDF, txt, docx, md), not images.
+- At startup: read `assistant_name`, `assistant_instructions`, and `vector_store_id` from `config.json`. No need to create an assistant object — just use these values in each `client.responses.create()` call.
+- For each user message call: `client.responses.create(model=model, instructions=assistant_instructions, input=user_message, tools=[{"type": "file_search", "vector_store_ids": [vector_store_id]}], previous_response_id=prev_id)` (omit `previous_response_id` for the first message in a session).
+- Store the returned `response.id` as `previous_response_id` to chain conversation turns.
+- Chat interface: streaming responses with citations.
+- Response text: `response.output_text`. Citations are in `response.output[i].content[j].annotations` where `ann.type == "file_citation"` and `ann.filename` gives the source file name.
+
+RUNS ON REPLIT — must do:
+- Bind the server to host 0.0.0.0 and the port Replit provides (the PORT env var if set) so the web preview loads.
+- Every process the app needs must start in PRODUCTION, not just development. If you split into multiple services (e.g. a Python backend), give each one a production run command, not only a development one, and confirm the published deployment launches them all. A backend with only a dev run config will fail when published.
+- CONFIGURE THE DEPLOYMENT CONFIG NOW, before finishing — not just the dev workflow. Set the deployment run command (and a build step if anything needs compiling) so the app is publishable immediately. Publishing uses the deployment config, NOT the dev Run button: if it is missing, clicking Publish fails with "Run command not found" / "Invalid run command".
+
+DONE WHEN: the app starts, the web preview loads, clicking a preloaded example returns a correct-looking result, AND the deployment config has a valid production run command so publishing works without a "Run command not found" error.
